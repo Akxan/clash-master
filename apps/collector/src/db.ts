@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import type { Connection, DomainStats, IPStats, HourlyStats, DailyStats, ProxyStats, RuleStats } from '@clashmaster/shared';
+import type { Connection, DomainStats, IPStats, HourlyStats, DailyStats, ProxyStats, RuleStats, ProxyTrafficStats } from '@clashmaster/shared';
 
 export interface TrafficUpdate {
   domain: string;
@@ -64,6 +64,7 @@ export class StatsDatabase {
         last_seen DATETIME,
         asn TEXT,
         geoip TEXT,
+        chains TEXT,
         PRIMARY KEY (backend_id, ip),
         FOREIGN KEY (backend_id) REFERENCES backend_configs(id) ON DELETE CASCADE
       );
@@ -245,6 +246,15 @@ export class StatsDatabase {
       console.log('[DB] Adding listening column to backend_configs...');
       this.db.exec(`ALTER TABLE backend_configs ADD COLUMN listening BOOLEAN DEFAULT 1;`);
     }
+
+    // Check if ip_stats has chains column (added for proxy display per IP)
+    const ipStatsInfo = this.db.prepare(`PRAGMA table_info(ip_stats)`).all() as { name: string }[];
+    const hasIPChains = ipStatsInfo.some(col => col.name === 'chains');
+
+    if (!hasIPChains) {
+      console.log('[DB] Adding chains column to ip_stats...');
+      this.db.exec(`ALTER TABLE ip_stats ADD COLUMN chains TEXT;`);
+    }
   }
 
   private performMigration() {
@@ -305,6 +315,7 @@ export class StatsDatabase {
           last_seen DATETIME,
           asn TEXT,
           geoip TEXT,
+          chains TEXT,
           PRIMARY KEY (backend_id, ip),
           FOREIGN KEY (backend_id) REFERENCES backend_configs(id) ON DELETE CASCADE
         );
@@ -312,7 +323,7 @@ export class StatsDatabase {
       this.db.exec(`
         INSERT INTO ip_stats_new 
         SELECT ${defaultBackendId} as backend_id, ip, domains, total_upload, total_download, 
-               total_connections, last_seen, asn, geoip 
+               total_connections, last_seen, asn, geoip, NULL 
         FROM ip_stats;
       `);
       this.db.exec(`DROP TABLE ip_stats;`);
@@ -511,8 +522,8 @@ export class StatsDatabase {
 
       // Update IP stats with backend_id
       const ipStmt = this.db.prepare(`
-        INSERT INTO ip_stats (backend_id, ip, domains, total_upload, total_download, total_connections, last_seen)
-        VALUES (@backendId, @ip, @domain, @upload, @download, 1, @timestamp)
+        INSERT INTO ip_stats (backend_id, ip, domains, total_upload, total_download, total_connections, last_seen, chains)
+        VALUES (@backendId, @ip, @domain, @upload, @download, 1, @timestamp, @chain)
         ON CONFLICT(backend_id, ip) DO UPDATE SET
           domains = CASE 
             WHEN ip_stats.domains IS NULL THEN @domain
@@ -522,7 +533,12 @@ export class StatsDatabase {
           total_upload = total_upload + @upload,
           total_download = total_download + @download,
           total_connections = total_connections + 1,
-          last_seen = @timestamp
+          last_seen = @timestamp,
+          chains = CASE 
+            WHEN ip_stats.chains IS NULL THEN @chain
+            WHEN INSTR(ip_stats.chains, @chain) > 0 THEN ip_stats.chains
+            ELSE ip_stats.chains || ',' || @chain
+          END
       `);
       ipStmt.run({
         backendId,
@@ -530,7 +546,8 @@ export class StatsDatabase {
         domain: update.domain || 'unknown',
         upload: update.upload,
         download: update.download,
-        timestamp
+        timestamp,
+        chain: update.chain
       });
 
       // Update proxy stats with backend_id
@@ -611,6 +628,35 @@ export class StatsDatabase {
     transaction();
   }
 
+  // Get a specific domain by name
+  getDomainByName(backendId: number, domain: string): DomainStats | null {
+    const stmt = this.db.prepare(`
+      SELECT domain, total_upload as totalUpload, total_download as totalDownload, 
+             total_connections as totalConnections, last_seen as lastSeen, ips, rules, chains
+      FROM domain_stats
+      WHERE backend_id = ? AND domain = ?
+    `);
+    const row = stmt.get(backendId, domain) as {
+      domain: string;
+      totalUpload: number;
+      totalDownload: number;
+      totalConnections: number;
+      lastSeen: string;
+      ips: string;
+      rules: string | null;
+      chains: string | null;
+    } | undefined;
+    
+    if (!row) return null;
+    
+    return {
+      ...row,
+      ips: row.ips ? row.ips.split(',') : [],
+      rules: row.rules ? row.rules.split(',') : [],
+      chains: row.chains ? row.chains.split(',') : [],
+    } as DomainStats;
+  }
+
   // Get all domain stats for a specific backend
   getDomainStats(backendId: number, limit = 100): DomainStats[] {
     const stmt = this.db.prepare(`
@@ -640,6 +686,60 @@ export class StatsDatabase {
     })) as DomainStats[];
   }
 
+  // Get IP stats for specific IPs (used for domain IP details)
+  getIPStatsByIPs(backendId: number, ips: string[]): IPStats[] {
+    if (ips.length === 0) return [];
+    
+    const placeholders = ips.map(() => '?').join(',');
+    const stmt = this.db.prepare(`
+      SELECT 
+        i.ip, 
+        i.domains, 
+        i.total_upload as totalUpload, 
+        i.total_download as totalDownload, 
+        i.total_connections as totalConnections, 
+        i.last_seen as lastSeen,
+        COALESCE(i.asn, g.asn) as asn,
+        CASE 
+          WHEN g.country IS NOT NULL THEN 
+            json_array(
+              g.country,
+              COALESCE(g.country_name, g.country),
+              COALESCE(g.city, ''),
+              COALESCE(g.as_name, '')
+            )
+          WHEN i.geoip IS NOT NULL THEN 
+            json(i.geoip)
+          ELSE 
+            NULL
+        END as geoIP,
+        i.chains
+      FROM ip_stats i
+      LEFT JOIN geoip_cache g ON i.ip = g.ip
+      WHERE i.backend_id = ? AND i.ip IN (${placeholders})
+      ORDER BY (i.total_upload + i.total_download) DESC
+    `);
+    const rows = stmt.all(backendId, ...ips) as Array<{
+      ip: string;
+      domains: string;
+      totalUpload: number;
+      totalDownload: number;
+      totalConnections: number;
+      lastSeen: string;
+      asn: string | null;
+      geoIP: string | null;
+      chains: string | null;
+    }>;
+    
+    return rows.map(row => ({
+      ...row,
+      domains: row.domains ? row.domains.split(',') : [],
+      geoIP: row.geoIP ? JSON.parse(row.geoIP).filter(Boolean) : undefined,
+      asn: row.asn || undefined,
+      chains: row.chains ? row.chains.split(',') : [],
+    })) as IPStats[];
+  }
+
   // Get all IP stats for a specific backend
   getIPStats(backendId: number, limit = 100): IPStats[] {
     const stmt = this.db.prepare(`
@@ -654,6 +754,7 @@ export class StatsDatabase {
         CASE 
           WHEN g.country IS NOT NULL THEN 
             json_array(
+              g.country,
               COALESCE(g.country_name, g.country),
               COALESCE(g.city, ''),
               COALESCE(g.as_name, '')
@@ -662,7 +763,8 @@ export class StatsDatabase {
             json(i.geoip)
           ELSE 
             NULL
-        END as geoIP
+        END as geoIP,
+        i.chains
       FROM ip_stats i
       LEFT JOIN geoip_cache g ON i.ip = g.ip
       WHERE i.backend_id = ?
@@ -678,6 +780,7 @@ export class StatsDatabase {
       lastSeen: string;
       asn: string | null;
       geoIP: string | null;
+      chains: string | null;
     }>;
     
     return rows.map(row => ({
@@ -685,6 +788,7 @@ export class StatsDatabase {
       domains: row.domains ? row.domains.split(',') : [],
       geoIP: row.geoIP ? JSON.parse(row.geoIP).filter(Boolean) : undefined,
       asn: row.asn || undefined,
+      chains: row.chains ? row.chains.split(',') : [],
     })) as IPStats[];
   }
 
@@ -941,6 +1045,36 @@ export class StatsDatabase {
       uniqueDomains,
       uniqueIPs
     };
+  }
+
+  // Get per-proxy traffic breakdown for a specific domain
+  getDomainProxyStats(backendId: number, domain: string): ProxyTrafficStats[] {
+    const stmt = this.db.prepare(`
+      SELECT chain, 
+             SUM(upload) as totalUpload, 
+             SUM(download) as totalDownload, 
+             COUNT(*) as totalConnections
+      FROM connection_logs
+      WHERE backend_id = ? AND domain = ?
+      GROUP BY chain
+      ORDER BY (SUM(upload) + SUM(download)) DESC
+    `);
+    return stmt.all(backendId, domain) as ProxyTrafficStats[];
+  }
+
+  // Get per-proxy traffic breakdown for a specific IP
+  getIPProxyStats(backendId: number, ip: string): ProxyTrafficStats[] {
+    const stmt = this.db.prepare(`
+      SELECT chain, 
+             SUM(upload) as totalUpload, 
+             SUM(download) as totalDownload, 
+             COUNT(*) as totalConnections
+      FROM connection_logs
+      WHERE backend_id = ? AND ip = ?
+      GROUP BY chain
+      ORDER BY (SUM(upload) + SUM(download)) DESC
+    `);
+    return stmt.all(backendId, ip) as ProxyTrafficStats[];
   }
 
   // Get recent connections for a specific backend

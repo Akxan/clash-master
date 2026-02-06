@@ -110,6 +110,61 @@ export class APIServer {
       return this.db.getIPStats(backendId, parseInt(limit as string) || 50);
     });
 
+    // Get per-proxy traffic breakdown for a specific domain
+    app.get('/api/stats/domains/proxy-stats', async (request, reply) => {
+      const backendId = getBackendId(request);
+      
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+
+      const { domain } = request.query as { domain?: string };
+      if (!domain) {
+        return reply.status(400).send({ error: 'Domain parameter is required' });
+      }
+
+      return this.db.getDomainProxyStats(backendId, domain);
+    });
+
+    // Get IP details for a specific domain (includes geoIP and traffic)
+    app.get('/api/stats/domains/ip-details', async (request, reply) => {
+      const backendId = getBackendId(request);
+      
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+
+      const { domain } = request.query as { domain?: string };
+      if (!domain) {
+        return reply.status(400).send({ error: 'Domain parameter is required' });
+      }
+
+      // Get the domain's IPs directly from database
+      const domainData = this.db.getDomainByName(backendId, domain);
+      if (!domainData || !domainData.ips || domainData.ips.length === 0) {
+        return [];
+      }
+
+      // Get IP details
+      return this.db.getIPStatsByIPs(backendId, domainData.ips);
+    });
+
+    // Get per-proxy traffic breakdown for a specific IP
+    app.get('/api/stats/ips/proxy-stats', async (request, reply) => {
+      const backendId = getBackendId(request);
+      
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+
+      const { ip } = request.query as { ip?: string };
+      if (!ip) {
+        return reply.status(400).send({ error: 'IP parameter is required' });
+      }
+
+      return this.db.getIPProxyStats(backendId, ip);
+    });
+
     // Get proxy/chain statistics for a specific backend
     app.get('/api/stats/proxies', async (request, reply) => {
       const backendId = getBackendId(request);

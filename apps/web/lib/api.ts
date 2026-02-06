@@ -8,6 +8,7 @@ import type {
   HourlyStats,
   DailyStats,
   TrafficTrendPoint,
+  ProxyTrafficStats,
 } from "@clashmaster/shared";
 
 const API_BASE = "/api";
@@ -162,6 +163,21 @@ export const api = {
       buildUrl(`${API_BASE}/stats/connections`, { backendId, limit })
     ),
     
+  getDomainProxyStats: (domain: string, backendId?: number) =>
+    fetchJson<ProxyTrafficStats[]>(
+      buildUrl(`${API_BASE}/stats/domains/proxy-stats`, { domain, backendId })
+    ),
+
+  getDomainIPDetails: (domain: string, backendId?: number) =>
+    fetchJson<IPStats[]>(
+      buildUrl(`${API_BASE}/stats/domains/ip-details`, { domain, backendId })
+    ),
+
+  getIPProxyStats: (ip: string, backendId?: number) =>
+    fetchJson<ProxyTrafficStats[]>(
+      buildUrl(`${API_BASE}/stats/ips/proxy-stats`, { ip, backendId })
+    ),
+
   search: (q: string) =>
     fetchJson<DomainStats[]>(
       `${API_BASE}/search?q=${encodeURIComponent(q)}`

@@ -6,7 +6,7 @@
   "nav": {
     "overview": "概览",
     "domains": "域名",
-    "countries": "国家",
+    "countries": "地区",
     "proxies": "代理",
     "rules": "规则",
     "network": "网络",
@@ -84,7 +84,7 @@
     "viewAll": "查看全部"
   },
   "topCountries": {
-    "title": "Top 国家",
+    "title": "热门地区",
     "viewAll": "查看全部",
     "sortByTraffic": "按流量排序",
     "sortByConnections": "按连接排序"
@@ -107,6 +107,8 @@
     "unknown": "未知",
     "ips": "IP数",
     "ipCount": "IP数",
+    "proxy": "代理节点",
+    "proxyTraffic": "代理节点流量明细",
     "associatedIPs": "关联 IP 地址",
     "domainsCount": "个域名",
     "showing": "显示",
@@ -124,6 +126,8 @@
     "location": "位置",
     "domains": "域名",
     "domainCount": "域名数",
+    "proxy": "代理节点",
+    "proxyTraffic": "代理节点流量明细",
     "associatedDomains": "关联域名",
     "download": "下载",
     "upload": "上传",
@@ -136,9 +140,9 @@
     "total": "总计"
   },
   "countries": {
-    "title": "国家/地区",
-    "details": "国家/地区详情",
-    "distribution": "国家/地区流量分布",
+    "title": "地区",
+    "details": "地区详情",
+    "distribution": "地区流量分布",
     "continents": "大洲：",
     "noData": "暂无数据",
     "connections": "连接"
@@ -166,12 +170,12 @@
     "comingSoon": "实时连接监控功能开发中..."
   },
   "map": {
-    "title": "全球流量分布",
+    "title": "全球地区流量",
     "total": "总计",
     "download": "下载",
     "upload": "上传",
     "connections": "连接数",
-    "hoverHint": "悬停查看国家详情",
+    "hoverHint": "悬停查看地区详情",
     "traffic": "流量：",
     "low": "低",
     "high": "高"

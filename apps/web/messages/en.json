@@ -6,7 +6,7 @@
   "nav": {
     "overview": "Overview",
     "domains": "Domains",
-    "countries": "Countries",
+    "countries": "Regions",
     "proxies": "Proxies",
     "rules": "Rules",
     "network": "Network",
@@ -84,7 +84,7 @@
     "viewAll": "View all"
   },
   "topCountries": {
-    "title": "Top Countries",
+    "title": "Top Regions",
     "viewAll": "View all",
     "sortByTraffic": "Sort by traffic",
     "sortByConnections": "Sort by connections"
@@ -107,6 +107,8 @@
     "unknown": "Unknown",
     "ips": "IPs",
     "ipCount": "IPs",
+    "proxy": "Proxy",
+    "proxyTraffic": "Proxy Traffic Breakdown",
     "associatedIPs": "Associated IP Addresses",
     "domainsCount": "domains",
     "showing": "Showing",
@@ -124,6 +126,8 @@
     "location": "Location",
     "domains": "Domains",
     "domainCount": "Domains",
+    "proxy": "Proxy",
+    "proxyTraffic": "Proxy Traffic Breakdown",
     "associatedDomains": "Associated Domains",
     "download": "Download",
     "upload": "Upload",
@@ -136,9 +140,9 @@
     "total": "Total"
   },
   "countries": {
-    "title": "Countries",
-    "details": "Country Details",
-    "distribution": "Country Traffic Distribution",
+    "title": "Regions",
+    "details": "Region Details",
+    "distribution": "Regional Traffic Distribution",
     "continents": "Continents:",
     "noData": "No data",
     "connections": "connections"
@@ -166,12 +170,12 @@
     "comingSoon": "Real-time connection monitoring coming soon..."
   },
   "map": {
-    "title": "Global Traffic Distribution",
+    "title": "Global Regional Traffic",
     "total": "Total",
     "download": "Download",
     "upload": "Upload",
     "connections": "Connections",
-    "hoverHint": "Hover over countries for details",
+    "hoverHint": "Hover over regions for details",
     "traffic": "Traffic:",
     "low": "Low",
     "high": "High"

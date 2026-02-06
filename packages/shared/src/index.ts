@@ -66,6 +66,7 @@ export interface IPStats {
   lastSeen: string;
   asn?: string;
   geoIP?: string[];
+  chains?: string[];
 }
 
 export interface HourlyStats {
@@ -121,6 +122,14 @@ export interface CountryStats {
   totalDownload: number;
   totalConnections: number;
   lastSeen?: string;
+}
+
+// Per-proxy traffic breakdown for a specific domain or IP
+export interface ProxyTrafficStats {
+  chain: string;
+  totalUpload: number;
+  totalDownload: number;
+  totalConnections: number;
 }
 
 // API Response Types

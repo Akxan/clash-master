@@ -1077,6 +1077,105 @@ export class StatsDatabase {
     return stmt.all(backendId, ip) as ProxyTrafficStats[];
   }
 
+  // Get domains for a specific proxy/node
+  getProxyDomains(backendId: number, chain: string, limit = 50): DomainStats[] {
+    // First get domains from connection_logs
+    const stmt = this.db.prepare(`
+      SELECT 
+        domain,
+        SUM(upload) as totalUpload,
+        SUM(download) as totalDownload,
+        COUNT(*) as totalConnections,
+        MAX(timestamp) as lastSeen,
+        GROUP_CONCAT(DISTINCT ip) as ips
+      FROM connection_logs
+      WHERE backend_id = ? AND chain = ? AND domain IS NOT NULL AND domain != 'unknown'
+      GROUP BY domain
+      ORDER BY (SUM(upload) + SUM(download)) DESC
+      LIMIT ?
+    `);
+    const rows = stmt.all(backendId, chain, limit) as Array<{
+      domain: string;
+      totalUpload: number;
+      totalDownload: number;
+      totalConnections: number;
+      lastSeen: string;
+      ips: string | null;
+    }>;
+    
+    return rows.map(row => ({
+      ...row,
+      ips: row.ips ? row.ips.split(',').filter(Boolean) : [],
+      rules: [],
+      chains: [chain],
+    })) as DomainStats[];
+  }
+
+  // Get IPs for a specific proxy/node
+  getProxyIPs(backendId: number, chain: string, limit = 50): IPStats[] {
+    // First get IPs from connection_logs
+    const stmt = this.db.prepare(`
+      SELECT 
+        ip,
+        SUM(upload) as totalUpload,
+        SUM(download) as totalDownload,
+        COUNT(*) as totalConnections,
+        MAX(timestamp) as lastSeen,
+        GROUP_CONCAT(DISTINCT domain) as domains
+      FROM connection_logs
+      WHERE backend_id = ? AND chain = ?
+      GROUP BY ip
+      ORDER BY (SUM(upload) + SUM(download)) DESC
+      LIMIT ?
+    `);
+    const rows = stmt.all(backendId, chain, limit) as Array<{
+      ip: string;
+      totalUpload: number;
+      totalDownload: number;
+      totalConnections: number;
+      lastSeen: string;
+      domains: string | null;
+    }>;
+    
+    // Get geoIP info for each IP
+    const ipList = rows.map(r => r.ip);
+    if (ipList.length === 0) {
+      return [];
+    }
+    
+    const placeholders = ipList.map(() => '?').join(',');
+    const geoStmt = this.db.prepare(`
+      SELECT 
+        ip,
+        CASE 
+          WHEN country IS NOT NULL THEN 
+            json_array(
+              country,
+              COALESCE(country_name, country),
+              COALESCE(city, ''),
+              COALESCE(as_name, '')
+            )
+          ELSE 
+            NULL
+        END as geoIP
+      FROM geoip_cache
+      WHERE ip IN (${placeholders})
+    `);
+    const geoRows = geoStmt.all(...ipList) as Array<{
+      ip: string;
+      geoIP: string | null;
+    }>;
+    
+    const geoMap = new Map(geoRows.map(r => [r.ip, r.geoIP]));
+    
+    return rows.map(row => ({
+      ...row,
+      domains: row.domains ? row.domains.split(',').filter(Boolean) : [],
+      chains: [chain],
+      geoIP: geoMap.get(row.ip) ? JSON.parse(geoMap.get(row.ip)!).filter(Boolean) : undefined,
+    })) as IPStats[];
+  }
+
   // Get recent connections for a specific backend
   getRecentConnections(backendId: number, limit = 100): Connection[] {
     const stmt = this.db.prepare(`

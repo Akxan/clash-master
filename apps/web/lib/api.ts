@@ -178,6 +178,16 @@ export const api = {
       buildUrl(`${API_BASE}/stats/ips/proxy-stats`, { ip, backendId })
     ),
 
+  getProxyDomains: (chain: string, backendId?: number) =>
+    fetchJson<DomainStats[]>(
+      buildUrl(`${API_BASE}/stats/proxies/domains`, { chain, backendId })
+    ),
+
+  getProxyIPs: (chain: string, backendId?: number) =>
+    fetchJson<IPStats[]>(
+      buildUrl(`${API_BASE}/stats/proxies/ips`, { chain, backendId })
+    ),
+
   search: (q: string) =>
     fetchJson<DomainStats[]>(
       `${API_BASE}/search?q=${encodeURIComponent(q)}`

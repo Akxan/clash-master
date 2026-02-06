@@ -91,8 +91,10 @@
   },
   "domains": {
     "title": "热门域名",
-    "domainList": "域名列表",
+    "domainList": "域名",
     "ipList": "IP 地址",
+    "associatedDomains": "关联域名",
+    "associatedIPs": "关联 IP 地址",
     "search": "搜索域名...",
     "noResults": "未找到域名",
     "connections": "连接",
@@ -123,12 +125,14 @@
     "noResults": "未找到 IP",
     "ip": "IP 地址",
     "ipAddress": "IP 地址",
+    "ipList": "IP 地址",
     "location": "位置",
     "domains": "域名",
     "domainCount": "域名数",
     "proxy": "代理节点",
     "proxyTraffic": "代理节点流量明细",
     "associatedDomains": "关联域名",
+    "associatedIPs": "关联 IP 地址",
     "download": "下载",
     "upload": "上传",
     "connections": "连接",
@@ -150,6 +154,8 @@
   "proxies": {
     "title": "代理节点",
     "distribution": "代理节点流量分布",
+    "topDomains": "热门域名",
+    "proxyNodes": "代理节点",
     "total": "总计",
     "download": "下载",
     "upload": "上传",
@@ -157,7 +163,7 @@
     "sortByTraffic": "流量",
     "sortByConnections": "连接",
     "noData": "暂无数据",
-    "viewAll": "查看全部"
+    "viewAll": "返回全部节点"
   },
   "rules": {
     "title": "规则",
@@ -209,7 +215,8 @@
     "back": "返回",
     "confirm": "确认",
     "edit": "编辑",
-    "delete": "删除"
+    "delete": "删除",
+    "ok": "确定"
   },
   "settings": {
     "title": "设置",

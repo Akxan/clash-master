@@ -8,6 +8,7 @@ import { StatsCards } from "@/components/stats-cards";
 import { OverviewTab } from "@/components/overview";
 import { TopDomainsChart } from "@/components/top-domains-chart";
 import { ProxyStatsChart } from "@/components/proxy-stats-chart";
+import { InteractiveProxyStats } from "@/components/interactive-proxy-stats";
 import { RuleChainChart } from "@/components/rule-chain-chart";
 import { WorldTrafficMap } from "@/components/world-traffic-map";
 import { CountryTrafficList } from "@/components/country-traffic-list";
@@ -131,12 +132,17 @@ const CountriesContent = memo(function CountriesContent({
 
 const ProxiesContent = memo(function ProxiesContent({
   data,
+  activeBackendId,
 }: {
   data: StatsSummary | null;
+  activeBackendId?: number;
 }) {
   return (
     <div className="space-y-6">
-      <ProxyStatsChart data={data?.proxyStats || []} />
+      <InteractiveProxyStats 
+        data={data?.proxyStats || []} 
+        activeBackendId={activeBackendId}
+      />
     </div>
   );
 });
@@ -305,7 +311,7 @@ export default function DashboardPage() {
       case "countries":
         return <CountriesContent countryData={countryData} />;
       case "proxies":
-        return <ProxiesContent data={data} />;
+        return <ProxiesContent data={data} activeBackendId={activeBackend?.id} />;
       case "rules":
         return <RulesContent data={data} />;
       case "network":

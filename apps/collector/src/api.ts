@@ -165,6 +165,38 @@ export class APIServer {
       return this.db.getIPProxyStats(backendId, ip);
     });
 
+    // Get domains for a specific proxy/chain
+    app.get('/api/stats/proxies/domains', async (request, reply) => {
+      const backendId = getBackendId(request);
+      
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+
+      const { chain } = request.query as { chain?: string };
+      if (!chain) {
+        return reply.status(400).send({ error: 'Chain parameter is required' });
+      }
+
+      return this.db.getProxyDomains(backendId, chain);
+    });
+
+    // Get IPs for a specific proxy/chain
+    app.get('/api/stats/proxies/ips', async (request, reply) => {
+      const backendId = getBackendId(request);
+      
+      if (backendId === null) {
+        return reply.status(404).send({ error: 'No backend specified or active' });
+      }
+
+      const { chain } = request.query as { chain?: string };
+      if (!chain) {
+        return reply.status(400).send({ error: 'Chain parameter is required' });
+      }
+
+      return this.db.getProxyIPs(backendId, chain);
+    });
+
     // Get proxy/chain statistics for a specific backend
     app.get('/api/stats/proxies', async (request, reply) => {
       const backendId = getBackendId(request);

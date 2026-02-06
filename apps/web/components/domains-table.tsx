@@ -253,7 +253,7 @@ export function DomainsTable({ data }: DomainsTableProps) {
       </div>
 
       {/* Mobile Sort Bar - Shown only on mobile */}
-      <div className="sm:hidden flex items-center gap-2 px-4 py-2 bg-secondary/30 overflow-x-auto">
+      <div className="sm:hidden flex items-center gap-2 px-4 py-2 bg-secondary/30 overflow-x-auto scrollbar-hide">
         {([
           { key: "domain" as SortKey, label: t("domain") },
           { key: "totalDownload" as SortKey, label: t("download") },

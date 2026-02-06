@@ -134,7 +134,7 @@ export function TopDomainsChart({ data }: TopDomainsChartProps) {
             <BarChart
               data={chartData}
               layout="vertical"
-              margin={{ top: 10, right: 80, left: 40, bottom: 10 }}
+              margin={{ top: 10, right: 60, left: 30, bottom: 10 }}
             >
               <CartesianGrid 
                 strokeDasharray="3 3" 
@@ -152,7 +152,7 @@ export function TopDomainsChart({ data }: TopDomainsChartProps) {
               <YAxis
                 type="category"
                 dataKey="name"
-                width={120}
+                width={100}
                 tick={{ fontSize: 11, fill: "currentColor" }}
                 tickLine={false}
                 axisLine={false}

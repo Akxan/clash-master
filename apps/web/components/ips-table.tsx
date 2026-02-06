@@ -246,7 +246,7 @@ export function IPsTable({ data }: IPsTableProps) {
       </div>
 
       {/* Mobile Sort Bar */}
-      <div className="sm:hidden flex items-center gap-2 px-4 py-2 bg-secondary/30 overflow-x-auto">
+      <div className="sm:hidden flex items-center gap-2 px-4 py-2 bg-secondary/30 overflow-x-auto scrollbar-hide">
         {([
           { key: "ip" as SortKey, label: t("ipAddress") },
           { key: "totalDownload" as SortKey, label: t("download") },

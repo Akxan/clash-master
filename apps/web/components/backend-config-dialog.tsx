@@ -110,6 +110,10 @@ export function BackendConfigDialog({
   const [clearBackendDataDialogOpen, setClearBackendDataDialogOpen] = useState(false);
   const [clearDataBackendId, setClearDataBackendId] = useState<number | null>(null);
   
+  // Error Alert Dialog State
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  
   const [formData, setFormData] = useState({
     name: "",
     host: "",
@@ -268,7 +272,8 @@ export function BackendConfigDialog({
       setClearBackendDataDialogOpen(false);
       setClearDataBackendId(null);
     } catch (error: any) {
-      alert(error.message || "Failed to clear backend data");
+      setErrorMessage(error.message || t("clearBackendDataError") || "Failed to clear backend data");
+      setErrorDialogOpen(true);
     } finally {
       setLoading(false);
     }
@@ -739,6 +744,26 @@ export function BackendConfigDialog({
               className={clearLogsDays === 0 ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
             >
               {commonT("confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Error Alert Dialog */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              {commonT("error") || "Error"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialogOpen(false)}>
+              {commonT("ok") || "OK"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

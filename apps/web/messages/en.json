@@ -72,6 +72,7 @@
   },
   "topDomains": {
     "title": "Top Domains",
+    "topDomains": "Top Domains",
     "sortByTraffic": "Sort by traffic",
     "sortByConnections": "Sort by connections",
     "viewAll": "View all",
@@ -91,8 +92,10 @@
   },
   "domains": {
     "title": "Top Domains",
-    "domainList": "Domain List",
+    "domainList": "Domains",
     "ipList": "IP Addresses",
+    "associatedDomains": "Associated Domains",
+    "associatedIPs": "Associated IP Addresses",
     "search": "Search domains...",
     "noResults": "No domains found",
     "connections": "connections",
@@ -123,12 +126,14 @@
     "noResults": "No IPs found",
     "ip": "IP Address",
     "ipAddress": "IP Address",
+    "ipList": "IP Addresses",
     "location": "Location",
     "domains": "Domains",
     "domainCount": "Domains",
     "proxy": "Proxy",
     "proxyTraffic": "Proxy Traffic Breakdown",
     "associatedDomains": "Associated Domains",
+    "associatedIPs": "Associated IP Addresses",
     "download": "Download",
     "upload": "Upload",
     "connections": "Connections",
@@ -150,6 +155,8 @@
   "proxies": {
     "title": "Proxies",
     "distribution": "Proxy Traffic Distribution",
+    "topDomains": "Top Domains",
+    "proxyNodes": "Proxy Nodes",
     "total": "Total",
     "download": "Download",
     "upload": "Upload",
@@ -157,7 +164,7 @@
     "sortByTraffic": "Traffic",
     "sortByConnections": "Connections",
     "noData": "No data",
-    "viewAll": "View all"
+    "viewAll": "Back to all proxies"
   },
   "rules": {
     "title": "Rules",
@@ -209,7 +216,8 @@
     "back": "Back",
     "confirm": "Confirm",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "ok": "OK"
   },
   "settings": {
     "title": "Settings",

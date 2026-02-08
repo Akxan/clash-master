@@ -2538,6 +2538,9 @@ export class StatsDatabase {
         // Clear new aggregation tables
         this.db.prepare(`DELETE FROM domain_proxy_stats WHERE backend_id = ?`).run(backendId);
         this.db.prepare(`DELETE FROM ip_proxy_stats WHERE backend_id = ?`).run(backendId);
+
+        // Clear hourly stats (used for today traffic)
+        this.db.prepare(`DELETE FROM hourly_stats WHERE backend_id = ?`).run(backendId);
       } else {
         const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
         const minuteCutoff = cutoff.toISOString().slice(0, 16) + ':00';
@@ -2585,6 +2588,9 @@ export class StatsDatabase {
         // Clear new aggregation tables
         this.db.prepare(`DELETE FROM domain_proxy_stats`).run();
         this.db.prepare(`DELETE FROM ip_proxy_stats`).run();
+
+        // Clear hourly stats (used for today traffic)
+        this.db.prepare(`DELETE FROM hourly_stats`).run();
       } else {
         const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
         const minuteCutoff = cutoff.toISOString().slice(0, 16) + ':00';

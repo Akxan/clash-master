@@ -708,7 +708,19 @@ export class APIServer {
 
       const result = this.db.cleanupOldData(backendId || null, days);
       
+      // Also clear realtime cache when clearing all data
       if (days === 0) {
+        if (backendId) {
+          // Clear specific backend's cache
+          realtimeStore.clearBackend(backendId);
+        } else {
+          // Clear all backends' cache
+          const backends = this.db.getAllBackends();
+          for (const backend of backends) {
+            realtimeStore.clearBackend(backend.id);
+          }
+        }
+        
         return { 
           message: `Cleaned all data: ${result.deletedConnections} connections, ${result.deletedDomains} domains, ${result.deletedProxies} proxies`,
           deleted: result.deletedConnections,

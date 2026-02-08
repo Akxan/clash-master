@@ -4,6 +4,14 @@ on:
   pull_request:
     types: [closed]
     branches: [dev]
+  workflow_dispatch:
+    inputs:
+      head_ref:
+        description: "Source branch name (e.g. feat/devices)"
+        required: true
+      merge_sha:
+        description: "Merge commit SHA to point preview branch to"
+        required: true
 
 permissions:
   contents: write
@@ -11,7 +19,7 @@ permissions:
 
 jobs:
   create-preview-branch:
-    if: github.event.pull_request.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
@@ -19,8 +27,13 @@ jobs:
       id: derive
       shell: bash
       run: |
-        head_ref="${{ github.event.pull_request.head.ref }}"
-        merge_sha="${{ github.event.pull_request.merge_commit_sha }}"
+        if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+          head_ref="${{ inputs.head_ref }}"
+          merge_sha="${{ inputs.merge_sha }}"
+        else
+          head_ref="${{ github.event.pull_request.head.ref }}"
+          merge_sha="${{ github.event.pull_request.merge_commit_sha }}"
+        fi
 
         if [[ -z "${merge_sha}" || "${merge_sha}" == "null" ]]; then
           echo "::error::Missing merge commit SHA on merged PR."
@@ -28,7 +41,7 @@ jobs:
         fi
 
         suffix="${head_ref}"
-        for prefix in "feat/" "feature/" "fix/" "hotfix/" "bugfix/" "chore/" "refactor/" "dev/"; do
+        for prefix in "feat/" "feature/" "fix/" "hotfix/" "bugfix/" "chore/" "refactor/" "dev/" "preview/"; do
           if [[ "${suffix}" == "${prefix}"* ]]; then
             suffix="${suffix#${prefix}}"
             break
@@ -45,7 +58,7 @@ jobs:
           safe="preview-${{ github.event.pull_request.number }}"
         fi
 
-        preview_branch="dev/${safe}"
+        preview_branch="preview/${safe}"
         echo "preview_branch=${preview_branch}" >> "$GITHUB_OUTPUT"
         echo "merge_sha=${merge_sha}" >> "$GITHUB_OUTPUT"
 

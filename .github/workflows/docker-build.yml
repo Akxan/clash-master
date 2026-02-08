@@ -2,7 +2,7 @@ name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ main, dev, 'dev/**' ]
+    branches: [ main, dev, 'preview/**' ]
     tags: [ 'v*' ]
   pull_request:
     branches: [ main, dev ]
@@ -27,12 +27,12 @@ jobs:
       id: pkg
       run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-    - name: Derive preview tag for dev/* branches
+    - name: Derive preview tag for preview/* branches
       id: preview
       shell: bash
       run: |
-        if [[ "${GITHUB_REF_TYPE}" == "branch" && "${GITHUB_REF_NAME}" == dev/* ]]; then
-          raw="${GITHUB_REF_NAME#dev/}"
+        if [[ "${GITHUB_REF_TYPE}" == "branch" && "${GITHUB_REF_NAME}" == preview/* ]]; then
+          raw="${GITHUB_REF_NAME#preview/}"
           safe="$(echo "${raw}" | tr '[:upper:]' '[:lower:]' | sed 's#[^a-z0-9._-]#-#g')"
           echo "enabled=true" >> "$GITHUB_OUTPUT"
           echo "tag=dev-${safe}" >> "$GITHUB_OUTPUT"

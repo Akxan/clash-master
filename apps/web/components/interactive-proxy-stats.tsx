@@ -66,6 +66,10 @@ export function InteractiveProxyStats({
   const t = useTranslations("proxies");
   const domainsT = useTranslations("domains");
   const backendT = useTranslations("dashboard");
+  const stableTimeRange = useMemo<TimeRange | undefined>(() => {
+    if (!timeRange?.start && !timeRange?.end) return undefined;
+    return { start: timeRange.start, end: timeRange.end };
+  }, [timeRange?.start, timeRange?.end]);
   
   const [selectedProxy, setSelectedProxy] = useState<string | null>(null);
   const [proxyDomains, setProxyDomains] = useState<DomainStats[]>([]);
@@ -112,8 +116,8 @@ export function InteractiveProxyStats({
     }
     try {
       const [domains, ips] = await Promise.all([
-        api.getProxyDomains(chain, activeBackendId, timeRange),
-        api.getProxyIPs(chain, activeBackendId, timeRange),
+        api.getProxyDomains(chain, activeBackendId, stableTimeRange),
+        api.getProxyIPs(chain, activeBackendId, stableTimeRange),
       ]);
       if (requestId !== requestIdRef.current) return;
       setProxyDomains(domains);
@@ -129,7 +133,7 @@ export function InteractiveProxyStats({
         setLoading(false);
       }
     }
-  }, [activeBackendId, timeRange]);
+  }, [activeBackendId, stableTimeRange]);
 
   useEffect(() => {
     if (chartData.length === 0) {
@@ -145,18 +149,17 @@ export function InteractiveProxyStats({
   }, [chartData, selectedProxy]);
 
   useEffect(() => {
-    if (selectedProxy) {
-      const selectedChanged = prevSelectedProxyRef.current !== selectedProxy;
-      const backendChanged = prevBackendRef.current !== activeBackendId;
-      const hasExistingDetails = proxyDomains.length > 0 || proxyIPs.length > 0;
-      if (loading && !selectedChanged && !backendChanged) return;
-      prevSelectedProxyRef.current = selectedProxy;
-      prevBackendRef.current = activeBackendId;
-      loadProxyDetails(selectedProxy, {
-        background: !selectedChanged && !backendChanged && hasExistingDetails,
-      });
-    }
-  }, [selectedProxy, activeBackendId, timeRange, loadProxyDetails, proxyDomains.length, proxyIPs.length, loading]);
+    if (!selectedProxy) return;
+
+    const selectedChanged = prevSelectedProxyRef.current !== selectedProxy;
+    const backendChanged = prevBackendRef.current !== activeBackendId;
+
+    prevSelectedProxyRef.current = selectedProxy;
+    prevBackendRef.current = activeBackendId;
+    loadProxyDetails(selectedProxy, {
+      background: !selectedChanged && !backendChanged,
+    });
+  }, [selectedProxy, activeBackendId, timeRange?.start, timeRange?.end, loadProxyDetails]);
 
   const handleProxyClick = useCallback((rawName: string) => {
     if (selectedProxy !== rawName) {

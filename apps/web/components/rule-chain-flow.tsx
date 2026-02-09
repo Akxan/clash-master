@@ -6,6 +6,7 @@ import {
   ReactFlowProvider,
   Background,
   Controls,
+  ControlButton,
   Handle,
   getStraightPath,
   useReactFlow,
@@ -17,7 +18,16 @@ import {
   useEdgesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Workflow, Loader2, Server, Layers, Eye, Activity } from "lucide-react";
+import {
+  Workflow,
+  Loader2,
+  Server,
+  Layers,
+  Eye,
+  Activity,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn, formatBytes, formatNumber } from "@/lib/utils";
@@ -356,10 +366,14 @@ function FlowRenderer({
   data,
   selectedRule,
   showAll,
+  isFullscreen,
+  onToggleFullscreen,
 }: {
   data: AllChainFlowData;
   selectedRule: string | null;
   showAll: boolean;
+  isFullscreen: boolean;
+  onToggleFullscreen: () => void;
 }) {
   const { fitView } = useReactFlow();
   const { resolvedTheme } = useTheme();
@@ -595,6 +609,28 @@ function FlowRenderer({
     }
   }, []);
 
+  useEffect(() => {
+    if (!reactFlowReady.current) return;
+
+    const doFitView = () => {
+      if (showAll || !activeIndices) {
+        fitView({ duration: 300, padding: 0.15 });
+      } else {
+        fitView({
+          nodes: activeIndices.nodeIndices.map((i) => ({ id: String(i) })),
+          duration: 300,
+          padding: 0.15,
+        });
+      }
+    };
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        doFitView();
+      });
+    });
+  }, [isFullscreen, showAll, activeIndices, fitView]);
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -614,7 +650,17 @@ function FlowRenderer({
       zoomOnDoubleClick={true}
       className="chain-flow-graph">
       <Background color={isDark ? "#374151" : "#e5e7eb"} gap={20} size={1} />
-      <Controls showInteractive={false} />
+      <Controls showInteractive={false} showFitView={false}>
+        <ControlButton
+          onClick={onToggleFullscreen}
+          title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+          {isFullscreen ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
+        </ControlButton>
+      </Controls>
     </ReactFlow>
   );
 }
@@ -638,6 +684,64 @@ export function UnifiedRuleChainFlow({
   const hasLoadedRef = useRef(false);
   const requestIdRef = useRef(0);
   const prevBackendRef = useRef<number | undefined>(undefined);
+  const flowContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = useCallback(async () => {
+    if (typeof document === "undefined") return;
+    const target = flowContainerRef.current;
+    if (!target) return;
+
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void> | void;
+      webkitFullscreenElement?: Element | null;
+    };
+    const element = target as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void;
+    };
+    const fullscreenElement =
+      doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+
+    try {
+      if (fullscreenElement) {
+        if (doc.exitFullscreen) {
+          await doc.exitFullscreen();
+        } else if (doc.webkitExitFullscreen) {
+          await doc.webkitExitFullscreen();
+        }
+        return;
+      }
+      if (element.requestFullscreen) {
+        await element.requestFullscreen();
+      } else if (element.webkitRequestFullscreen) {
+        await element.webkitRequestFullscreen();
+      }
+    } catch (err) {
+      console.error("Failed to toggle fullscreen:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleFullscreenChange = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      const fullscreenElement =
+        doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
+      setIsFullscreen(fullscreenElement === flowContainerRef.current);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange as EventListener);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener(
+        "webkitfullscreenchange",
+        handleFullscreenChange as EventListener,
+      );
+    };
+  }, []);
 
   // Fetch on backend/time-range changes. Parent already drives 5s updates
   // for rolling windows, so avoid an additional local polling loop.
@@ -899,14 +1003,14 @@ export function UnifiedRuleChainFlow({
   }
 
   return (
-    <Card className="mb-4 overflow-hidden">
+      <Card className="mb-4 overflow-hidden">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Workflow className="h-4 w-4 text-primary" />
-            {t("chainFlow")}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 min-w-0">
+            <Workflow className="h-4 w-4 text-primary shrink-0" />
+            <span className="leading-tight">{t("chainFlow")}</span>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full sm:w-auto items-center justify-end gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -935,12 +1039,47 @@ export function UnifiedRuleChainFlow({
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <div style={{ height: containerHeight }} className="w-full">
+        <div
+          ref={flowContainerRef}
+          style={{ height: isFullscreen ? "100vh" : containerHeight }}
+          className={cn("relative w-full", isFullscreen && "bg-background")}>
+          {isFullscreen && (
+            <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "h-8 px-3 text-xs gap-1.5 rounded-full transition-colors bg-background/85 backdrop-blur",
+                  activePolicyOnly
+                    ? "border-emerald-500 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 dark:border-emerald-500/50"
+                    : "hover:border-emerald-300 hover:text-emerald-600",
+                )}
+                onClick={() => setActivePolicyOnly(!activePolicyOnly)}>
+                <Activity
+                  className={cn("h-3.5 w-3.5", activePolicyOnly && "text-emerald-500")}
+                />
+                {t("activePolicy")}
+              </Button>
+              <Button
+                variant={showAll ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 px-3 text-xs gap-1.5 rounded-full bg-background/85 backdrop-blur",
+                  showAll && "bg-primary/90 hover:bg-primary",
+                )}
+                onClick={() => setShowAll(!showAll)}>
+                <Eye className="h-3.5 w-3.5" />
+                {t("showAll")}
+              </Button>
+            </div>
+          )}
           <ReactFlowProvider>
             <FlowRenderer
               data={renderData}
               selectedRule={showAll ? null : selectedRule}
               showAll={showAll}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={toggleFullscreen}
             />
           </ReactFlowProvider>
         </div>

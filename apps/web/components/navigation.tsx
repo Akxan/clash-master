@@ -87,6 +87,11 @@ export function Navigation({
       : backendStatus === "unhealthy"
         ? dashboardT("backendUnavailable")
         : dashboardT("backendStatusUnknown");
+  const isBackendUnhealthy = backendStatus === "unhealthy";
+  const statusDotSizeClass = isBackendUnhealthy ? "h-3 w-3" : "h-2.5 w-2.5";
+  const statusPingAnimationClass = isBackendUnhealthy
+    ? "animate-ping [animation-duration:700ms]"
+    : "animate-ping [animation-duration:2s]";
 
   return (
     <>
@@ -112,19 +117,29 @@ export function Navigation({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
-                      className="relative inline-flex h-2.5 w-2.5 shrink-0"
+                      className={cn("relative inline-flex shrink-0", statusDotSizeClass)}
                       aria-label={statusText}
                       role="status">
                       <span
                         className={cn(
-                          "absolute inline-flex h-full w-full rounded-full animate-ping",
+                          "absolute inline-flex h-full w-full rounded-full",
                           statusPingClass,
+                          statusPingAnimationClass,
                         )}
                       />
+                      {isBackendUnhealthy && (
+                        <span
+                          className={cn(
+                            "absolute inline-flex h-full w-full rounded-full animate-ping [animation-duration:700ms] [animation-delay:140ms]",
+                            statusPingClass,
+                          )}
+                        />
+                      )}
                       <span
                         className={cn(
-                          "relative inline-flex h-2.5 w-2.5 rounded-full shadow-[0_0_0_3px_rgba(255,255,255,0.06)]",
+                          "relative inline-flex rounded-full shadow-[0_0_0_3px_rgba(255,255,255,0.06)]",
                           statusClass,
+                          statusDotSizeClass,
                         )}
                       />
                     </span>

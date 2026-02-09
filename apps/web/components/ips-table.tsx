@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   Search,
   ArrowUpDown,
@@ -72,6 +72,10 @@ const getIPColor = (ip: string) => {
 
 export function IPsTable({ activeBackendId, timeRange }: IPsTableProps) {
   const t = useTranslations("ips");
+  const stableTimeRange = useMemo<TimeRange | undefined>(() => {
+    if (!timeRange?.start && !timeRange?.end) return undefined;
+    return { start: timeRange.start, end: timeRange.end };
+  }, [timeRange?.start, timeRange?.end]);
   const [data, setData] = useState<IPStats[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -94,7 +98,19 @@ export function IPsTable({ activeBackendId, timeRange }: IPsTableProps) {
   const [domainDetailsLoading, setDomainDetailsLoading] = useState<string | null>(
     null,
   );
+  const proxyStatsRef = useRef<Record<string, ProxyTrafficStats[]>>({});
+  const domainDetailsRef = useRef<Record<string, DomainStats[]>>({});
+  const proxyStatsInFlightRef = useRef<Set<string>>(new Set());
+  const domainDetailsInFlightRef = useRef<Set<string>>(new Set());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    proxyStatsRef.current = proxyStats;
+  }, [proxyStats]);
+
+  useEffect(() => {
+    domainDetailsRef.current = domainDetails;
+  }, [domainDetails]);
 
   // Debounce search input
   useEffect(() => {
@@ -119,8 +135,8 @@ export function IPsTable({ activeBackendId, timeRange }: IPsTableProps) {
           sortBy: sortKey,
           sortOrder,
           search: debouncedSearch || undefined,
-          start: timeRange?.start,
-          end: timeRange?.end,
+          start: stableTimeRange?.start,
+          end: stableTimeRange?.end,
         });
         if (!cancelled) {
           setData(result.data);
@@ -147,7 +163,7 @@ export function IPsTable({ activeBackendId, timeRange }: IPsTableProps) {
     sortKey,
     sortOrder,
     debouncedSearch,
-    timeRange,
+    stableTimeRange,
   ]);
 
   useEffect(() => {
@@ -155,6 +171,10 @@ export function IPsTable({ activeBackendId, timeRange }: IPsTableProps) {
     setExpandedIP(null);
     setProxyStats({});
     setDomainDetails({});
+    setProxyStatsLoading(null);
+    setDomainDetailsLoading(null);
+    proxyStatsInFlightRef.current.clear();
+    domainDetailsInFlightRef.current.clear();
   }, [activeBackendId]);
 
   // Fetch proxy stats when an IP is expanded
@@ -162,24 +182,25 @@ export function IPsTable({ activeBackendId, timeRange }: IPsTableProps) {
     async (ip: string, options?: { force?: boolean; background?: boolean }) => {
       const force = options?.force ?? false;
       const background = options?.background ?? false;
-      const hasCached = !!proxyStats[ip];
+      const hasCached = !!proxyStatsRef.current[ip];
       if (!force && hasCached) return;
+      if (proxyStatsInFlightRef.current.has(ip)) return;
       if (!background || !hasCached) {
         setProxyStatsLoading(ip);
       }
+      proxyStatsInFlightRef.current.add(ip);
       try {
-        const stats = await api.getIPProxyStats(ip, activeBackendId, timeRange);
+        const stats = await api.getIPProxyStats(ip, activeBackendId, stableTimeRange);
         setProxyStats((prev) => ({ ...prev, [ip]: stats }));
       } catch (err) {
         console.error(`Failed to fetch proxy stats for ${ip}:`, err);
         setProxyStats((prev) => ({ ...prev, [ip]: [] }));
       } finally {
-        if (proxyStatsLoading === ip) {
-          setProxyStatsLoading(null);
-        }
+        proxyStatsInFlightRef.current.delete(ip);
+        setProxyStatsLoading((prev) => (prev === ip ? null : prev));
       }
     },
-    [proxyStats, activeBackendId, timeRange, proxyStatsLoading],
+    [activeBackendId, stableTimeRange],
   );
 
   // Fetch domain details (with traffic) when an IP is expanded
@@ -187,24 +208,25 @@ export function IPsTable({ activeBackendId, timeRange }: IPsTableProps) {
     async (ip: string, options?: { force?: boolean; background?: boolean }) => {
       const force = options?.force ?? false;
       const background = options?.background ?? false;
-      const hasCached = !!domainDetails[ip];
+      const hasCached = !!domainDetailsRef.current[ip];
       if (!force && hasCached) return;
+      if (domainDetailsInFlightRef.current.has(ip)) return;
       if (!background || !hasCached) {
         setDomainDetailsLoading(ip);
       }
+      domainDetailsInFlightRef.current.add(ip);
       try {
-        const details = await api.getIPDomainDetails(ip, activeBackendId, timeRange);
+        const details = await api.getIPDomainDetails(ip, activeBackendId, stableTimeRange);
         setDomainDetails((prev) => ({ ...prev, [ip]: details }));
       } catch (err) {
         console.error(`Failed to fetch domain details for ${ip}:`, err);
         setDomainDetails((prev) => ({ ...prev, [ip]: [] }));
       } finally {
-        if (domainDetailsLoading === ip) {
-          setDomainDetailsLoading(null);
-        }
+        domainDetailsInFlightRef.current.delete(ip);
+        setDomainDetailsLoading((prev) => (prev === ip ? null : prev));
       }
     },
-    [domainDetails, activeBackendId, timeRange, domainDetailsLoading],
+    [activeBackendId, stableTimeRange],
   );
 
   useEffect(() => {
@@ -217,7 +239,7 @@ export function IPsTable({ activeBackendId, timeRange }: IPsTableProps) {
     if (!expandedIP) return;
     fetchProxyStats(expandedIP, { force: true, background: true });
     fetchDomainDetails(expandedIP, { force: true, background: true });
-  }, [timeRange?.start, timeRange?.end, expandedIP, fetchProxyStats, fetchDomainDetails]);
+  }, [timeRange?.start, timeRange?.end, fetchProxyStats, fetchDomainDetails]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -243,10 +265,6 @@ export function IPsTable({ activeBackendId, timeRange }: IPsTableProps) {
   const toggleExpand = (ip: string) => {
     const newExpanded = expandedIP === ip ? null : ip;
     setExpandedIP(newExpanded);
-    if (newExpanded) {
-      fetchProxyStats(newExpanded);
-      fetchDomainDetails(newExpanded);
-    }
   };
 
   const SortIcon = ({ column }: { column: SortKey }) => {

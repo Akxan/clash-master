@@ -116,7 +116,9 @@ export function ProxyChainBadge({
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-md bg-secondary/60 text-foreground dark:bg-secondary/40 dark:text-foreground/80 text-[11px] font-medium",
-                truncateLabel ? "px-1.5 py-0.5 truncate max-w-[120px]" : "px-2 py-0.5 whitespace-nowrap",
+                truncateLabel
+                  ? "px-1.5 py-0.5 truncate max-w-[180px] lg:max-w-[220px]"
+                  : "px-2 py-0.5 whitespace-nowrap",
                 badgeClassName,
               )}
             >

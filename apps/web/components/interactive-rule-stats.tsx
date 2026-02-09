@@ -101,6 +101,10 @@ export function InteractiveRuleStats({
   const domainsT = useTranslations("domains");
   const ipsT = useTranslations("ips");
   const backendT = useTranslations("dashboard");
+  const stableTimeRange = useMemo<TimeRange | undefined>(() => {
+    if (!timeRange?.start && !timeRange?.end) return undefined;
+    return { start: timeRange.start, end: timeRange.end };
+  }, [timeRange?.start, timeRange?.end]);
   
   const [selectedRule, setSelectedRule] = useState<string | null>(null);
   const [ruleDomains, setRuleDomains] = useState<DomainStats[]>([]);
@@ -135,6 +139,12 @@ export function InteractiveRuleStats({
   const [ipProxyStatsLoading, setIPProxyStatsLoading] = useState<string | null>(null);
   const [ipDomainDetails, setIPDomainDetails] = useState<Record<string, DomainStats[]>>({});
   const [ipDomainDetailsLoading, setIPDomainDetailsLoading] = useState<string | null>(null);
+  const domainProxyStatsRef = useRef<Record<string, ProxyTrafficStats[]>>({});
+  const domainIPDetailsRef = useRef<Record<string, IPStats[]>>({});
+  const ipProxyStatsRef = useRef<Record<string, ProxyTrafficStats[]>>({});
+  const ipDomainDetailsRef = useRef<Record<string, DomainStats[]>>({});
+  const domainDetailsInFlightRef = useRef<Set<string>>(new Set());
+  const ipDetailsInFlightRef = useRef<Set<string>>(new Set());
   const requestIdRef = useRef(0);
   const prevSelectedRuleRef = useRef<string | null>(null);
   const prevBackendRef = useRef<number | undefined>(undefined);
@@ -146,6 +156,22 @@ export function InteractiveRuleStats({
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
+
+  useEffect(() => {
+    domainProxyStatsRef.current = domainProxyStats;
+  }, [domainProxyStats]);
+
+  useEffect(() => {
+    domainIPDetailsRef.current = domainIPDetails;
+  }, [domainIPDetails]);
+
+  useEffect(() => {
+    ipProxyStatsRef.current = ipProxyStats;
+  }, [ipProxyStats]);
+
+  useEffect(() => {
+    ipDomainDetailsRef.current = ipDomainDetails;
+  }, [ipDomainDetails]);
 
   // Fetch Clash rules to find zero-traffic rules
   useEffect(() => {
@@ -248,17 +274,11 @@ export function InteractiveRuleStats({
   const toggleExpandDomain = (domain: string) => {
     const newExpanded = expandedDomain === domain ? null : domain;
     setExpandedDomain(newExpanded);
-    if (newExpanded) {
-      fetchExpandedDomainDetails(newExpanded);
-    }
   };
 
   const toggleExpandIP = (ip: string) => {
     const newExpanded = expandedIP === ip ? null : ip;
     setExpandedIP(newExpanded);
-    if (newExpanded) {
-      fetchExpandedIPDetails(newExpanded);
-    }
   };
 
   const fetchExpandedDomainDetails = useCallback(async (
@@ -268,16 +288,18 @@ export function InteractiveRuleStats({
     if (!selectedRule) return;
     const force = options?.force ?? false;
     const background = options?.background ?? false;
-    const hasProxyCached = !!domainProxyStats[domain];
-    const hasIPCached = !!domainIPDetails[domain];
+    const hasProxyCached = !!domainProxyStatsRef.current[domain];
+    const hasIPCached = !!domainIPDetailsRef.current[domain];
     if (!force && hasProxyCached && hasIPCached) return;
+    if (domainDetailsInFlightRef.current.has(domain)) return;
 
     if (!background || !hasProxyCached) setDomainProxyStatsLoading(domain);
     if (!background || !hasIPCached) setDomainIPDetailsLoading(domain);
+    domainDetailsInFlightRef.current.add(domain);
     try {
       const [proxyStats, ipDetails] = await Promise.all([
-        api.getRuleDomainProxyStats(selectedRule, domain, activeBackendId, timeRange),
-        api.getRuleDomainIPDetails(selectedRule, domain, activeBackendId, timeRange),
+        api.getRuleDomainProxyStats(selectedRule, domain, activeBackendId, stableTimeRange),
+        api.getRuleDomainIPDetails(selectedRule, domain, activeBackendId, stableTimeRange),
       ]);
       setDomainProxyStats((prev) => ({ ...prev, [domain]: proxyStats }));
       setDomainIPDetails((prev) => ({ ...prev, [domain]: ipDetails }));
@@ -286,17 +308,14 @@ export function InteractiveRuleStats({
       setDomainProxyStats((prev) => ({ ...prev, [domain]: [] }));
       setDomainIPDetails((prev) => ({ ...prev, [domain]: [] }));
     } finally {
-      if (domainProxyStatsLoading === domain) setDomainProxyStatsLoading(null);
-      if (domainIPDetailsLoading === domain) setDomainIPDetailsLoading(null);
+      domainDetailsInFlightRef.current.delete(domain);
+      setDomainProxyStatsLoading((prev) => (prev === domain ? null : prev));
+      setDomainIPDetailsLoading((prev) => (prev === domain ? null : prev));
     }
   }, [
     selectedRule,
-    domainProxyStats,
-    domainIPDetails,
     activeBackendId,
-    timeRange,
-    domainProxyStatsLoading,
-    domainIPDetailsLoading,
+    stableTimeRange,
   ]);
 
   const fetchExpandedIPDetails = useCallback(async (
@@ -306,16 +325,18 @@ export function InteractiveRuleStats({
     if (!selectedRule) return;
     const force = options?.force ?? false;
     const background = options?.background ?? false;
-    const hasProxyCached = !!ipProxyStats[ip];
-    const hasDomainCached = !!ipDomainDetails[ip];
+    const hasProxyCached = !!ipProxyStatsRef.current[ip];
+    const hasDomainCached = !!ipDomainDetailsRef.current[ip];
     if (!force && hasProxyCached && hasDomainCached) return;
+    if (ipDetailsInFlightRef.current.has(ip)) return;
 
     if (!background || !hasProxyCached) setIPProxyStatsLoading(ip);
     if (!background || !hasDomainCached) setIPDomainDetailsLoading(ip);
+    ipDetailsInFlightRef.current.add(ip);
     try {
       const [proxyStats, domainDetails] = await Promise.all([
-        api.getRuleIPProxyStats(selectedRule, ip, activeBackendId, timeRange),
-        api.getRuleIPDomainDetails(selectedRule, ip, activeBackendId, timeRange),
+        api.getRuleIPProxyStats(selectedRule, ip, activeBackendId, stableTimeRange),
+        api.getRuleIPDomainDetails(selectedRule, ip, activeBackendId, stableTimeRange),
       ]);
       setIPProxyStats((prev) => ({ ...prev, [ip]: proxyStats }));
       setIPDomainDetails((prev) => ({ ...prev, [ip]: domainDetails }));
@@ -324,17 +345,14 @@ export function InteractiveRuleStats({
       setIPProxyStats((prev) => ({ ...prev, [ip]: [] }));
       setIPDomainDetails((prev) => ({ ...prev, [ip]: [] }));
     } finally {
-      if (ipProxyStatsLoading === ip) setIPProxyStatsLoading(null);
-      if (ipDomainDetailsLoading === ip) setIPDomainDetailsLoading(null);
+      ipDetailsInFlightRef.current.delete(ip);
+      setIPProxyStatsLoading((prev) => (prev === ip ? null : prev));
+      setIPDomainDetailsLoading((prev) => (prev === ip ? null : prev));
     }
   }, [
     selectedRule,
-    ipProxyStats,
-    ipDomainDetails,
     activeBackendId,
-    timeRange,
-    ipProxyStatsLoading,
-    ipDomainDetailsLoading,
+    stableTimeRange,
   ]);
 
   // Sort icon component
@@ -371,8 +389,8 @@ export function InteractiveRuleStats({
 
     try {
       const [domains, ips] = await Promise.all([
-        api.getRuleDomains(rule, activeBackendId, timeRange),
-        api.getRuleIPs(rule, activeBackendId, timeRange),
+        api.getRuleDomains(rule, activeBackendId, stableTimeRange),
+        api.getRuleIPs(rule, activeBackendId, stableTimeRange),
       ]);
       if (requestId !== requestIdRef.current) return;
       setRuleDomains(domains);
@@ -394,7 +412,7 @@ export function InteractiveRuleStats({
         setLoading(false);
       }
     }
-  }, [activeBackendId, timeRange]);
+  }, [activeBackendId, stableTimeRange]);
 
   // Default select first rule when data loads
   useEffect(() => {
@@ -411,21 +429,19 @@ export function InteractiveRuleStats({
   }, [chartData, selectedRule]);
 
   useEffect(() => {
-    if (selectedRule) {
-      const selectedChanged = prevSelectedRuleRef.current !== selectedRule;
-      const backendChanged = prevBackendRef.current !== activeBackendId;
-      const hasExistingDetails = ruleDomains.length > 0 || ruleIPs.length > 0;
-      if (loading && !selectedChanged && !backendChanged) return;
-      const background = !selectedChanged && !backendChanged && hasExistingDetails;
+    if (!selectedRule) return;
 
-      prevSelectedRuleRef.current = selectedRule;
-      prevBackendRef.current = activeBackendId;
-      loadRuleDetails(selectedRule, {
-        background,
-        preserveUiState: background,
-      });
-    }
-  }, [selectedRule, activeBackendId, timeRange, loadRuleDetails, ruleDomains.length, ruleIPs.length, loading]);
+    const selectedChanged = prevSelectedRuleRef.current !== selectedRule;
+    const backendChanged = prevBackendRef.current !== activeBackendId;
+    const background = !selectedChanged && !backendChanged;
+
+    prevSelectedRuleRef.current = selectedRule;
+    prevBackendRef.current = activeBackendId;
+    loadRuleDetails(selectedRule, {
+      background,
+      preserveUiState: background,
+    });
+  }, [selectedRule, activeBackendId, timeRange?.start, timeRange?.end, loadRuleDetails]);
 
   useEffect(() => {
     setExpandedDomain(null);
@@ -438,7 +454,19 @@ export function InteractiveRuleStats({
     setDomainIPDetailsLoading(null);
     setIPProxyStatsLoading(null);
     setIPDomainDetailsLoading(null);
+    domainDetailsInFlightRef.current.clear();
+    ipDetailsInFlightRef.current.clear();
   }, [selectedRule, activeBackendId]);
+
+  useEffect(() => {
+    if (!expandedDomain) return;
+    fetchExpandedDomainDetails(expandedDomain);
+  }, [expandedDomain, fetchExpandedDomainDetails]);
+
+  useEffect(() => {
+    if (!expandedIP) return;
+    fetchExpandedIPDetails(expandedIP);
+  }, [expandedIP, fetchExpandedIPDetails]);
 
   useEffect(() => {
     if (expandedDomain) {
@@ -450,8 +478,6 @@ export function InteractiveRuleStats({
   }, [
     timeRange?.start,
     timeRange?.end,
-    expandedDomain,
-    expandedIP,
     fetchExpandedDomainDetails,
     fetchExpandedIPDetails,
   ]);

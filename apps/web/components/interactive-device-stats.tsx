@@ -42,6 +42,10 @@ export function InteractiveDeviceStats({
   const t = useTranslations("devices");
   const domainsT = useTranslations("domains");
   const backendT = useTranslations("dashboard");
+  const stableTimeRange = useMemo<TimeRange | undefined>(() => {
+    if (!timeRange?.start && !timeRange?.end) return undefined;
+    return { start: timeRange.start, end: timeRange.end };
+  }, [timeRange?.start, timeRange?.end]);
   
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [deviceDomains, setDeviceDomains] = useState<DomainStats[]>([]);
@@ -87,8 +91,8 @@ export function InteractiveDeviceStats({
     }
     try {
       const [domains, ips] = await Promise.all([
-        api.getDeviceDomains(sourceIP, activeBackendId, timeRange),
-        api.getDeviceIPs(sourceIP, activeBackendId, timeRange),
+        api.getDeviceDomains(sourceIP, activeBackendId, stableTimeRange),
+        api.getDeviceIPs(sourceIP, activeBackendId, stableTimeRange),
       ]);
       if (requestId !== requestIdRef.current) return;
       setDeviceDomains(domains);
@@ -104,7 +108,7 @@ export function InteractiveDeviceStats({
         setLoading(false);
       }
     }
-  }, [activeBackendId, timeRange]);
+  }, [activeBackendId, stableTimeRange]);
 
   useEffect(() => {
     if (chartData.length === 0) {
@@ -120,18 +124,17 @@ export function InteractiveDeviceStats({
   }, [chartData, selectedDevice]);
 
   useEffect(() => {
-    if (selectedDevice) {
-      const selectedChanged = prevSelectedDeviceRef.current !== selectedDevice;
-      const backendChanged = prevBackendRef.current !== activeBackendId;
-      const hasExistingDetails = deviceDomains.length > 0 || deviceIPs.length > 0;
-      if (loading && !selectedChanged && !backendChanged) return;
-      prevSelectedDeviceRef.current = selectedDevice;
-      prevBackendRef.current = activeBackendId;
-      loadDeviceDetails(selectedDevice, {
-        background: !selectedChanged && !backendChanged && hasExistingDetails,
-      });
-    }
-  }, [selectedDevice, activeBackendId, timeRange, loadDeviceDetails, deviceDomains.length, deviceIPs.length, loading]);
+    if (!selectedDevice) return;
+
+    const selectedChanged = prevSelectedDeviceRef.current !== selectedDevice;
+    const backendChanged = prevBackendRef.current !== activeBackendId;
+
+    prevSelectedDeviceRef.current = selectedDevice;
+    prevBackendRef.current = activeBackendId;
+    loadDeviceDetails(selectedDevice, {
+      background: !selectedChanged && !backendChanged,
+    });
+  }, [selectedDevice, activeBackendId, timeRange?.start, timeRange?.end, loadDeviceDetails]);
 
   const handleDeviceClick = useCallback((rawName: string) => {
     if (selectedDevice !== rawName) {

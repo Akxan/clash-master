@@ -892,7 +892,7 @@ export function BackendConfigDialog({
                       </div>
                     ) : (
                       // View Mode
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                         {/* Left: Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -905,15 +905,17 @@ export function BackendConfigDialog({
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-muted-foreground mt-1">
+                          <div
+                            className="text-sm text-muted-foreground mt-1 break-all sm:break-normal sm:truncate"
+                            title={`${backend.host}:${backend.port}`}>
                             {backend.host}:{backend.port}
                           </div>
                         </div>
 
                         {/* Right: Actions */}
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-2 shrink-0">
                           {/* Collect Toggle with Label */}
-                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50">
+                          <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-secondary/50">
                             <Switch
                               checked={backend.listening}
                               onCheckedChange={(checked) =>
@@ -927,7 +929,7 @@ export function BackendConfigDialog({
                           </div>
 
                           {/* Action Buttons Group */}
-                          <div className="flex items-center gap-1 pl-2 border-l border-border">
+                          <div className="flex items-center gap-1 pl-0 border-l-0 sm:pl-2 sm:border-l sm:border-border">
                             {/* Set Active Button - Show placeholder when active to maintain layout */}
                             <Button
                               variant="ghost"

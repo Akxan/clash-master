@@ -60,6 +60,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   api,
   getPresetTimeRange,
   type TimeRange,
@@ -337,7 +342,9 @@ export default function DashboardPage() {
   const [activeBackend, setActiveBackend] = useState<Backend | null>(null);
   const [listeningBackends, setListeningBackends] = useState<Backend[]>([]);
   const initialLoaded = useRef(false);
-  const lastDataRef = useRef<string>("");
+  const lastSummaryRef = useRef<string>("");
+  const lastCountriesRef = useRef<string>("");
+  const activeBackendId = activeBackend?.id;
 
   const backendStatus: BackendStatus = useMemo(() => {
     if (!activeBackend) return "unknown";
@@ -382,31 +389,48 @@ export default function DashboardPage() {
 
       try {
         const queryRange = rangeOverride ?? timeRange;
-
-        // Get active backend ID if available
-        const activeBackendData = await api.getActiveBackend();
-
-        // If no active backend, skip stats loading
-        if ("error" in activeBackendData) {
-          setData(null);
-          setCountryData([]);
-          setError(null);
-          lastDataRef.current = "";
-          return;
+        let backendId = activeBackendId;
+        if (!backendId) {
+          const activeBackendData = await api.getActiveBackend();
+          if ("error" in activeBackendData) {
+            setData(null);
+            setCountryData([]);
+            setError(null);
+            lastSummaryRef.current = "";
+            lastCountriesRef.current = "";
+            return;
+          }
+          backendId = activeBackendData.id;
+          if (!activeBackend || activeBackend.id !== activeBackendData.id) {
+            setActiveBackend(activeBackendData);
+          }
         }
 
-        const backendId = activeBackendData.id;
+        const needsSummary =
+          activeTab === "overview" || activeTab === "proxies" || activeTab === "rules";
+        const needsCountries = activeTab === "overview" || activeTab === "countries";
+
         const [stats, countries] = await Promise.all([
-          api.getSummary(backendId, queryRange),
-          api.getCountries(backendId, 50, queryRange),
+          needsSummary ? api.getSummary(backendId, queryRange) : Promise.resolve(null),
+          needsCountries ? api.getCountries(backendId, 50, queryRange) : Promise.resolve(null),
         ]);
 
-        const nextSignature = JSON.stringify({ stats, countries });
-        if (nextSignature !== lastDataRef.current) {
-          lastDataRef.current = nextSignature;
-          setData(stats);
-          setCountryData(countries);
+        if (stats) {
+          const summarySignature = JSON.stringify(stats);
+          if (summarySignature !== lastSummaryRef.current) {
+            lastSummaryRef.current = summarySignature;
+            setData(stats);
+          }
         }
+
+        if (countries) {
+          const countriesSignature = JSON.stringify(countries);
+          if (countriesSignature !== lastCountriesRef.current) {
+            lastCountriesRef.current = countriesSignature;
+            setCountryData(countries);
+          }
+        }
+
         setLastUpdated(new Date());
         setError(null);
       } catch (err) {
@@ -415,7 +439,7 @@ export default function DashboardPage() {
         if (showLoading) setIsLoading(false);
       }
     },
-    [timeRange],
+    [timeRange, activeBackendId, activeBackend, activeTab],
   );
 
   const refreshNow = useCallback(
@@ -494,20 +518,20 @@ export default function DashboardPage() {
             error={error}
             timeRange={timeRange}
             timePreset={timePreset}
-            activeBackendId={activeBackend?.id}
+            activeBackendId={activeBackendId}
             onNavigate={setActiveTab}
             backendStatus={backendStatus}
           />
         );
       case "domains":
-        return <DomainsContent data={data} activeBackendId={activeBackend?.id} timeRange={timeRange} />;
+        return <DomainsContent data={data} activeBackendId={activeBackendId} timeRange={timeRange} />;
       case "countries":
         return <CountriesContent countryData={countryData} />;
       case "proxies":
         return (
           <ProxiesContent
             data={data}
-            activeBackendId={activeBackend?.id}
+            activeBackendId={activeBackendId}
             timeRange={timeRange}
             backendStatus={backendStatus}
           />
@@ -516,7 +540,7 @@ export default function DashboardPage() {
         return (
           <RulesContent
             data={data}
-            activeBackendId={activeBackend?.id}
+            activeBackendId={activeBackendId}
             timeRange={timeRange}
             backendStatus={backendStatus}
           />
@@ -524,7 +548,7 @@ export default function DashboardPage() {
       case "devices":
         return (
           <DevicesContent
-            activeBackendId={activeBackend?.id}
+            activeBackendId={activeBackendId}
             timeRange={timeRange}
             backendStatus={backendStatus}
           />
@@ -539,7 +563,7 @@ export default function DashboardPage() {
             error={error}
             timeRange={timeRange}
             timePreset={timePreset}
-            activeBackendId={activeBackend?.id}
+            activeBackendId={activeBackendId}
             onNavigate={setActiveTab}
             backendStatus={backendStatus}
           />
@@ -709,6 +733,42 @@ export default function DashboardPage() {
                 />
               </div>
 
+              {/* Mobile: Backend warning in top actions */}
+              {backendStatus === "unhealthy" && (
+                <div className="sm:hidden">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label={dashboardT("backendUnavailable")}
+                        className="relative h-9 w-9 text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+                      >
+                        <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping [animation-duration:900ms]" />
+                        <AlertTriangle className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="end"
+                      side="bottom"
+                      className="w-[240px] p-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-rose-600 dark:text-rose-400">
+                            {dashboardT("backendUnavailable")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {backendStatusHint || dashboardT("backendUnavailableHint")}
+                          </p>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
               {/* Mobile: More Options Dropdown */}
               <div className="sm:hidden">
                 <DropdownMenu>
@@ -830,21 +890,6 @@ export default function DashboardPage() {
         </header>
 
         <div className="p-4 lg:p-6 pb-24 lg:pb-6 max-w-7xl mx-auto">
-          {backendStatus === "unhealthy" && (
-            <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-rose-600 dark:text-rose-400">
-                    {dashboardT("backendUnavailable")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {backendStatusHint || dashboardT("backendUnavailableHint")}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
           {renderContent()}
         </div>
       </main>

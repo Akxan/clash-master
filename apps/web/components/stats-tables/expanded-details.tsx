@@ -171,8 +171,9 @@ function ProxyTrafficCards({
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] tabular-nums">
               <span className="text-blue-500">↓ {formatBytes(ps.totalDownload)}</span>
               <span className="text-purple-500">↑ {formatBytes(ps.totalUpload)}</span>
-              <span className="text-muted-foreground">
-                {formatNumber(ps.totalConnections)} {connLabel}
+              <span className="inline-flex items-center gap-1 text-muted-foreground">
+                <Link2 className="h-3 w-3" />
+                {formatNumber(ps.totalConnections)}
               </span>
             </div>
           </div>
@@ -325,8 +326,9 @@ export function DomainExpandedDetails({
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] tabular-nums">
                         <span className="text-blue-500">↓ {formatBytes(ipStat.totalDownload)}</span>
                         <span className="text-purple-500">↑ {formatBytes(ipStat.totalUpload)}</span>
-                        <span className="text-muted-foreground">
-                          {formatNumber(ipStat.totalConnections)} {labels.conn}
+                        <span className="inline-flex items-center gap-1 text-muted-foreground">
+                          <Link2 className="h-3 w-3" />
+                          {formatNumber(ipStat.totalConnections)}
                         </span>
                       </div>
                       {location && (
@@ -447,8 +449,9 @@ export function IPExpandedDetails({
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] tabular-nums">
                       <span className="text-blue-500">↓ {formatBytes(domain.totalDownload)}</span>
                       <span className="text-purple-500">↑ {formatBytes(domain.totalUpload)}</span>
-                      <span className="text-muted-foreground">
-                        {formatNumber(domain.totalConnections)} {labels.conn}
+                      <span className="inline-flex items-center gap-1 text-muted-foreground">
+                        <Link2 className="h-3 w-3" />
+                        {formatNumber(domain.totalConnections)}
                       </span>
                     </div>
                   </div>

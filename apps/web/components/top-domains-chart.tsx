@@ -105,14 +105,6 @@ export function TopDomainsChart({ activeBackendId, timeRange }: TopDomainsChartP
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchData();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
-
   useEffect(() => {
     if (!containerRef.current) return;
 

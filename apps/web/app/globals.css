@@ -1,6 +1,20 @@
 @import "tailwindcss";
 @import "@xyflow/react/dist/style.css";
 
+@font-face {
+  font-family: "CMTwemojiFlags";
+  src: url("/fonts/TwemojiMozilla-flags.woff2") format("woff2");
+  font-display: swap;
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0020-E007F;
+}
+
+@font-face {
+  font-family: "CMNotoEmojiFlags";
+  src: url("/fonts/NotoColorEmoji-flagsonly.ttf") format("truetype");
+  font-display: swap;
+  unicode-range: U+1F1E6-1F1FF;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -135,6 +149,7 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
     background-image:
       radial-gradient(
         ellipse at 0% 0%,
@@ -256,6 +271,10 @@
 
 .animate-fade-in-up {
   animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.emoji-flag-font {
+  font-family: "CMTwemojiFlags", "CMNotoEmojiFlags", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", var(--font-geist-sans), system-ui;
 }
 
 .animate-pulse-glow {

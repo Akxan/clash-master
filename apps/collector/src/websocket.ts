@@ -491,6 +491,7 @@ export class StatsWebSocketServer {
     switch (value) {
       case 'domain':
       case 'totalUpload':
+      case 'totalTraffic':
       case 'totalConnections':
       case 'lastSeen':
       case 'totalDownload':
@@ -505,6 +506,7 @@ export class StatsWebSocketServer {
     switch (value) {
       case 'ip':
       case 'totalUpload':
+      case 'totalTraffic':
       case 'totalConnections':
       case 'lastSeen':
       case 'totalDownload':

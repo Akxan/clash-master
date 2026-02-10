@@ -163,6 +163,12 @@ function sortDomains(data: DomainStats[], sortBy: string, sortOrder: 'asc' | 'de
     switch (sortBy) {
       case 'domain':
         return compareString(a.domain, b.domain, sortOrder);
+      case 'totalTraffic':
+        return compareNumber(
+          a.totalDownload + a.totalUpload,
+          b.totalDownload + b.totalUpload,
+          sortOrder,
+        );
       case 'totalUpload':
         return compareNumber(a.totalUpload, b.totalUpload, sortOrder);
       case 'totalConnections':
@@ -181,6 +187,12 @@ function sortIPs(data: IPStats[], sortBy: string, sortOrder: 'asc' | 'desc'): IP
     switch (sortBy) {
       case 'ip':
         return compareString(a.ip, b.ip, sortOrder);
+      case 'totalTraffic':
+        return compareNumber(
+          a.totalDownload + a.totalUpload,
+          b.totalDownload + b.totalUpload,
+          sortOrder,
+        );
       case 'totalUpload':
         return compareNumber(a.totalUpload, b.totalUpload, sortOrder);
       case 'totalConnections':

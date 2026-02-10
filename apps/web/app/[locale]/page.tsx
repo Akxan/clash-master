@@ -158,12 +158,10 @@ const OverviewContent = memo(function OverviewContent({
 });
 
 const DomainsContent = memo(function DomainsContent({
-  data,
   activeBackendId,
   timeRange,
   autoRefresh,
 }: {
-  data: StatsSummary | null;
   activeBackendId?: number;
   timeRange: TimeRange;
   autoRefresh: boolean;
@@ -172,7 +170,6 @@ const DomainsContent = memo(function DomainsContent({
   return (
     <div className="space-y-6">
       <TopDomainsChart
-        data={data?.topDomains}
         activeBackendId={activeBackendId}
         timeRange={timeRange}
       />
@@ -605,7 +602,6 @@ export default function DashboardPage() {
       case "domains":
         return (
           <DomainsContent
-            data={data}
             activeBackendId={activeBackendId}
             timeRange={timeRange}
             autoRefresh={autoRefresh}

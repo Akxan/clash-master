@@ -137,11 +137,10 @@ export const TopProxiesSimple = React.memo(
                   </span>
 
                   <span
-                    className="flex-1 text-sm font-medium truncate"
+                    className="emoji-flag-font flex-1 text-sm font-medium truncate"
                     title={proxyItem.chain}>
                     {displayName || proxyItem.chain}
                   </span>
-
                   <span className="text-sm font-bold tabular-nums shrink-0">
                     {formatBytes(total)}
                   </span>

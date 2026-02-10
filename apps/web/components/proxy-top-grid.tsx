@@ -5,7 +5,11 @@ import { Server, Link2, ArrowUpDown, ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CountryFlag, extractCountryCodeFromText, stripLeadingFlagEmoji } from "@/components/country-flag";
+import {
+  CountryFlag,
+  extractCountryCodeFromText,
+  stripLeadingFlagEmoji,
+} from "@/components/country-flag";
 import { formatBytes, formatNumber } from "@/lib/utils";
 import type { ProxyStats } from "@clashmaster/shared";
 
@@ -17,13 +21,17 @@ interface ProxyTopGridProps {
 
 type SortBy = "traffic" | "connections";
 
-const COLORS = ["#3B82F6", "#8B5CF6", "#06B6D4", "#10B981", "#F59E0B", "#EF4444"];
+const COLORS = [
+  "#3B82F6",
+  "#8B5CF6",
+  "#06B6D4",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+];
 
 function normalizeProxyName(name: string): string {
-  const normalized = name
-    .replace(/^\["?/, "")
-    .replace(/"?\]$/, "")
-    .trim();
+  const normalized = name.replace(/^\["?/, "").replace(/"?\]$/, "").trim();
   const parts = normalized
     .split(">")
     .map((part) => part.trim())
@@ -44,17 +52,23 @@ function getProxyCountryCode(name: string): string {
   return extractCountryCodeFromText(cleaned) ?? "UNKNOWN";
 }
 
-export function ProxyTopGrid({ data, limit = 5, onViewAll }: ProxyTopGridProps) {
+export function ProxyTopGrid({
+  data,
+  limit = 5,
+  onViewAll,
+}: ProxyTopGridProps) {
   const [sortBy, setSortBy] = useState<SortBy>("traffic");
   const t = useTranslations("topProxies");
   const proxiesT = useTranslations("proxies");
 
   const proxies = useMemo(() => {
     if (!data) return [];
-    
+
     const sorted = [...data].sort((a, b) => {
       if (sortBy === "traffic") {
-        return (b.totalDownload + b.totalUpload) - (a.totalDownload + a.totalUpload);
+        return (
+          b.totalDownload + b.totalUpload - (a.totalDownload + a.totalUpload)
+        );
       }
       return b.totalConnections - a.totalConnections;
     });
@@ -68,7 +82,8 @@ export function ProxyTopGrid({ data, limit = 5, onViewAll }: ProxyTopGridProps) 
     }));
   }, [data, limit, sortBy]);
 
-  const toggleSort = () => setSortBy(prev => prev === "traffic" ? "connections" : "traffic");
+  const toggleSort = () =>
+    setSortBy((prev) => (prev === "traffic" ? "connections" : "traffic"));
 
   return (
     <Card className="h-full flex flex-col">
@@ -78,16 +93,21 @@ export function ProxyTopGrid({ data, limit = 5, onViewAll }: ProxyTopGridProps) 
             <Server className="w-4 h-4" />
             {t("title")}
           </CardTitle>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="h-7 px-2 text-xs"
-            onClick={toggleSort}
-          >
+            onClick={toggleSort}>
             {sortBy === "traffic" ? (
-              <><ArrowUpDown className="w-3 h-3 mr-1" /> {proxiesT("sortByTraffic")}</>
+              <>
+                <ArrowUpDown className="w-3 h-3 mr-1" />{" "}
+                {proxiesT("sortByTraffic")}
+              </>
             ) : (
-              <><Link2 className="w-3 h-3 mr-1" /> {proxiesT("sortByConnections")}</>
+              <>
+                <Link2 className="w-3 h-3 mr-1" />{" "}
+                {proxiesT("sortByConnections")}
+              </>
             )}
           </Button>
         </div>
@@ -97,14 +117,15 @@ export function ProxyTopGrid({ data, limit = 5, onViewAll }: ProxyTopGridProps) 
           {proxies.map((proxy, index) => (
             <div
               key={proxy.chain}
-              className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-card/50 hover:bg-card transition-colors"
-            >
+              className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-card/50 hover:bg-card transition-colors">
               {/* Rank */}
-              <span className={`
+              <span
+                className={`
                 w-6 h-6 rounded-md text-xs font-bold flex items-center justify-center shrink-0
-                ${index < 3 
-                  ? "bg-primary/10 text-primary" 
-                  : "bg-muted text-muted-foreground"
+                ${
+                  index < 3
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted text-muted-foreground"
                 }
               `}>
                 {index + 1}
@@ -147,7 +168,11 @@ export function ProxyTopGrid({ data, limit = 5, onViewAll }: ProxyTopGridProps) 
         {/* Footer */}
         {onViewAll && (
           <div className="mt-4 pt-3 border-t border-border/30">
-            <Button variant="ghost" size="sm" className="w-full h-9 text-xs" onClick={onViewAll}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full h-9 text-xs"
+              onClick={onViewAll}>
               {proxiesT("viewAll")}
               <ArrowRight className="w-3 h-3 ml-1" />
             </Button>

@@ -3068,6 +3068,7 @@ export class StatsDatabase {
       domain: 'domain',
       totalDownload: 'total_download',
       totalUpload: 'total_upload',
+      totalTraffic: '(total_upload + total_download)',
       totalConnections: 'total_connections',
       lastSeen: 'last_seen',
     };
@@ -3078,6 +3079,7 @@ export class StatsDatabase {
         domain: 'domain',
         totalDownload: 'totalDownload',
         totalUpload: 'totalUpload',
+        totalTraffic: '(totalUpload + totalDownload)',
         totalConnections: 'totalConnections',
         lastSeen: 'lastSeen',
       };
@@ -3213,6 +3215,7 @@ export class StatsDatabase {
       ip: 'i.ip',
       totalDownload: 'i.total_download',
       totalUpload: 'i.total_upload',
+      totalTraffic: '(i.total_upload + i.total_download)',
       totalConnections: 'i.total_connections',
       lastSeen: 'i.last_seen',
     };
@@ -3223,6 +3226,7 @@ export class StatsDatabase {
         ip: 'agg.ip',
         totalDownload: 'agg.totalDownload',
         totalUpload: 'agg.totalUpload',
+        totalTraffic: '(agg.totalUpload + agg.totalDownload)',
         totalConnections: 'agg.totalConnections',
         lastSeen: 'agg.lastSeen',
       };

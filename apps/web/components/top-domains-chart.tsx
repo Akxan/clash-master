@@ -13,7 +13,7 @@ import {
   LabelList,
 } from "recharts";
 import { useTranslations } from "next-intl";
-import { BarChart3, Loader2 } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,8 +41,7 @@ const CHART_CONFIG = {
   100: { height: 1200, barSize: 14, showAllLabels: true },
 } as const;
 
-// Vibrant color palette for bars
-const COLORS = [
+const DOMAIN_COLORS = [
   "#3B82F6", // Blue
   "#8B5CF6", // Purple
   "#06B6D4", // Cyan
@@ -54,6 +53,24 @@ const COLORS = [
   "#14B8A6", // Teal
   "#F97316", // Orange
 ];
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const clean = hex.replace("#", "");
+  const full = clean.length === 3
+    ? clean.split("").map((c) => c + c).join("")
+    : clean;
+  const int = parseInt(full, 16);
+  return {
+    r: (int >> 16) & 255,
+    g: (int >> 8) & 255,
+    b: int & 255,
+  };
+}
+
+function withAlpha(hex: string, alpha: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 // Custom label renderer to prevent text wrapping in SVG
 function renderCustomBarLabel(props: any) {
@@ -89,7 +106,7 @@ export function TopDomainsChart({ data, activeBackendId, timeRange }: TopDomains
       {
         offset: 0,
         limit: topN,
-        sortBy: "totalDownload",
+        sortBy: "totalTraffic",
         sortOrder: "desc",
       },
       stableTimeRange,
@@ -98,7 +115,7 @@ export function TopDomainsChart({ data, activeBackendId, timeRange }: TopDomains
       api.getDomains(activeBackendId, {
         offset: 0,
         limit: topN,
-        sortBy: "totalDownload",
+        sortBy: "totalTraffic",
         sortOrder: "desc",
         start: stableTimeRange?.start,
         end: stableTimeRange?.end,
@@ -110,10 +127,14 @@ export function TopDomainsChart({ data, activeBackendId, timeRange }: TopDomains
   const domains = useMemo(() => {
     const source = data ?? domainsQuery.data?.data ?? [];
     return [...source]
-      .sort((a, b) => b.totalDownload - a.totalDownload)
+      .sort(
+        (a, b) =>
+          b.totalDownload +
+          b.totalUpload -
+          (a.totalDownload + a.totalUpload),
+      )
       .slice(0, topN);
   }, [data, domainsQuery.data?.data, topN]);
-  const isLoading = !data && domainsQuery.isLoading && !domainsQuery.data;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -137,12 +158,12 @@ export function TopDomainsChart({ data, activeBackendId, timeRange }: TopDomains
   const chartData = useMemo(() => {
     if (!domains || domains.length === 0) return [];
     const result = domains.map((domain: DomainStats, index: number) => ({
+      baseColor: DOMAIN_COLORS[index % DOMAIN_COLORS.length],
       name: domain.domain,
       fullDomain: domain.domain,
       total: domain.totalDownload + domain.totalUpload,
       download: domain.totalDownload,
       upload: domain.totalUpload,
-      color: COLORS[index % COLORS.length],
     }));
     // After first data load, mark as rendered so subsequent updates skip animation
     if (result.length > 0) {
@@ -205,7 +226,7 @@ export function TopDomainsChart({ data, activeBackendId, timeRange }: TopDomains
           </div>
           <Tabs
             value={topN.toString()}
-            onValueChange={(v) => setTopN(parseInt(v) as TopOption)}>
+            onValueChange={(v) => setTopN(parseInt(v, 10) as TopOption)}>
             <TabsList className="h-8">
               {TOP_OPTIONS.map((n) => (
                 <TabsTrigger
@@ -261,13 +282,31 @@ export function TopDomainsChart({ data, activeBackendId, timeRange }: TopDomains
                 cursor={{ fill: "rgba(128, 128, 128, 0.1)" }}
               />
               <Bar
-                dataKey="total"
+                dataKey="download"
+                stackId="traffic"
+                radius={[0, 0, 0, 0]}
+                maxBarSize={config.barSize}
+                isAnimationActive={!hasRenderedRef.current}
+                animationDuration={600}>
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`download-cell-${entry.fullDomain}-${index}`}
+                    fill={withAlpha(entry.baseColor, 0.75)}
+                  />
+                ))}
+              </Bar>
+              <Bar
+                dataKey="upload"
+                stackId="traffic"
                 radius={[0, 4, 4, 0]}
                 maxBarSize={config.barSize}
                 isAnimationActive={!hasRenderedRef.current}
                 animationDuration={600}>
                 {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                  <Cell
+                    key={`upload-cell-${entry.fullDomain}-${index}`}
+                    fill={entry.baseColor}
+                  />
                 ))}
                 {showLabels && (
                   <LabelList

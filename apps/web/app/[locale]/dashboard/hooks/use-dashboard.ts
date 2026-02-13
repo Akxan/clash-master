@@ -369,7 +369,7 @@ export function useDashboard(): UseDashboardReturn {
     wsConnected,
     wsRealtimeActive,
     isLoading: summaryQuery.isLoading || (backendsQuery.isLoading && !backends.length),
-    isTransitioning: summaryQuery.isPlaceholderData === true,
+    isTransitioning: summaryQuery.isPlaceholderData === true || summaryQuery.isLoading,
 
     // Actions
     setActiveTab,

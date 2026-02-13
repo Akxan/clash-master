@@ -7,10 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-02-13
+
 ### Added
+- Added transition progress bar to dashboard header for smoother data switching experience
+- Implemented skeleton loading states for dashboard data widgets
+- Introduced `ClientOnly` component for optimized client-side rendering
+- New API hooks for devices, traffic, rules, and proxies with unified data fetching logic
 - Time range restrictions for showcase mode stats display
 - Backend switching capability in showcase mode
 - Enhanced rule chain flow visualization with zero-traffic chain merging
+
+### Changed
+- Optimized database batch upserts using sub-transactions for better performance
+- Enhanced GeoIP service reliability with failure cooldowns and queue limits
+- Implemented WebSocket summary caching to reduce redundant data transmission
+- Enhanced i18n support for settings and theme options
+- Improved API error handling mechanism
+
+### Fixed
+- Optimized login dialog dark theme styling
+- Fixed login dialog auto-focus issue
+- Refined transition state detection logic
 
 ## [1.2.0] - 2026-02-12
 

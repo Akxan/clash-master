@@ -404,10 +404,7 @@ export function Content({
   };
 
   return (
-    <div className={cn(
-      "transition-opacity duration-200",
-      isTransitioning && "opacity-50 pointer-events-none"
-    )}>
+    <div>
       {renderContent()}
     </div>
   );
